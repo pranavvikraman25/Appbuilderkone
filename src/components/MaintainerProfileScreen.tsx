@@ -4,28 +4,37 @@ import { Screen } from '../App';
 export function MaintainerProfileScreen({ 
   onNavigate,
   userEmail,
-  userName 
+  userName,
+  userRole
 }: { 
   onNavigate: (screen: Screen) => void;
   userEmail: string;
   userName: string;
+  userRole: 'admin' | 'maintainer';
 }) {
   // Mock maintainer data - in real app this would come from backend
   const maintainerData = {
     name: userName || 'John Technician',
     email: userEmail,
+    role: userRole,
     phone: '+358 40 123 4567',
-    employeeId: 'KNE-MT-2024-001',
-    department: 'Field Maintenance',
+    employeeId: userRole === 'admin' ? 'KNE-ADM-2024-001' : 'KNE-MT-2024-001',
+    department: userRole === 'admin' ? 'Supervision & Management' : 'Field Maintenance',
     location: 'Helsinki Region',
     joinDate: 'Jan 15, 2023',
-    certifications: [
-      'Elevator Safety Inspector Level 2',
-      'KONE Technical Certification',
-      'Electrical Systems Specialist'
-    ],
-    completedMaintenance: 147,
-    activeAssignments: 3
+    certifications: userRole === 'admin' 
+      ? [
+          'Elevator Safety Inspector Level 3',
+          'KONE Management Certification',
+          'Operations Supervisor'
+        ]
+      : [
+          'Elevator Safety Inspector Level 2',
+          'KONE Technical Certification',
+          'Electrical Systems Specialist'
+        ],
+    completedMaintenance: userRole === 'admin' ? 0 : 147,
+    activeAssignments: userRole === 'admin' ? 0 : 3
   };
 
   return (
@@ -53,6 +62,15 @@ export function MaintainerProfileScreen({
             </div>
             <div className="text-lg text-gray-900 mb-1">{maintainerData.name}</div>
             <div className="text-sm text-gray-600 mb-2">{maintainerData.department}</div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`text-xs px-3 py-1 ${
+                maintainerData.role === 'admin' 
+                  ? 'bg-purple-100 text-purple-800 border border-purple-300' 
+                  : 'bg-blue-100 text-blue-800 border border-blue-300'
+              }`}>
+                {maintainerData.role === 'admin' ? 'ADMIN' : 'MAINTAINER'}
+              </div>
+            </div>
             <div className="text-xs text-gray-500 px-3 py-1 bg-gray-100 border border-gray-200">
               {maintainerData.employeeId}
             </div>

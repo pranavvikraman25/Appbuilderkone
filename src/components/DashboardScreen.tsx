@@ -8,18 +8,22 @@ export function DashboardScreen({
   isLoggedIn, 
   userEmail,
   userName,
+  userRole,
   onLogout,
   elevators,
-  isVibrating 
+  isVibrating,
+  activeSession
 }: { 
   onNavigate: (screen: Screen) => void;
   onGoBack?: () => void;
   isLoggedIn: boolean;
   userEmail: string;
   userName: string;
+  userRole: 'admin' | 'maintainer';
   onLogout: () => void;
   elevators: any[];
   isVibrating: boolean;
+  activeSession?: any;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -56,9 +60,14 @@ export function DashboardScreen({
           <div className="mb-3 p-2 bg-blue-50 border border-blue-200 flex items-center gap-2">
             <User className="w-4 h-4 text-[#005EB8]" />
             <div className="flex-1">
-              <div className="text-xs text-gray-600">Logged in as</div>
+              <div className="text-xs text-gray-600">Logged in as {userRole === 'admin' ? 'Admin' : 'Maintainer'}</div>
               <div className="text-sm text-gray-900">{userName}</div>
             </div>
+            {activeSession && (
+              <div className="px-2 py-1 bg-green-500 text-white text-xs">
+                Active
+              </div>
+            )}
           </div>
         )}
         
@@ -174,54 +183,77 @@ export function DashboardScreen({
         ))}
       </div>
       
-      {/* Bottom Navigation */}
-      <div className="bg-white border-t border-gray-300 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <button 
-            onClick={() => onNavigate({ name: 'health-monitor' })}
-            className="flex flex-col items-center gap-1 px-3 relative"
-          >
-            <Heart className={`w-5 h-5 ${isVibrating ? 'text-red-600 animate-pulse' : 'text-gray-600'}`} />
-            <span className={`text-xs ${isVibrating ? 'text-red-600' : 'text-gray-600'}`}>Health</span>
-            {isVibrating && (
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-            )}
-          </button>
-          
-          <button 
-            onClick={() => onNavigate({ name: 'movement-heatmap-overview' })}
-            className="flex flex-col items-center gap-1 px-3"
-          >
-            <MapPin className="w-5 h-5 text-gray-600" />
-            <span className="text-xs text-gray-600">Map</span>
-          </button>
-          
-          <button 
-            onClick={() => onNavigate({ name: 'add-elevator' })}
-            className="flex flex-col items-center gap-1 px-3"
-          >
-            <div className="w-12 h-12 rounded-full bg-[#005EB8] flex items-center justify-center -mt-6 border-4 border-white">
-              <Plus className="w-6 h-6 text-white" />
-            </div>
-          </button>
-          
-          <button 
-            onClick={() => onNavigate({ name: 'all-issues-overview' })}
-            className="flex flex-col items-center gap-1 px-3"
-          >
-            <AlertCircle className="w-5 h-5 text-gray-600" />
-            <span className="text-xs text-gray-600">Issues</span>
-          </button>
-          
-          <button 
-            onClick={() => onNavigate({ name: 'saved-reports' })}
-            className="flex flex-col items-center gap-1 px-3"
-          >
-            <FileText className="w-5 h-5 text-gray-600" />
-            <span className="text-xs text-gray-600">Reports</span>
-          </button>
+      {/* Bottom Navigation - Role-based */}
+      {userRole === 'admin' ? (
+        <div className="bg-white border-t border-gray-300 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => onNavigate({ name: 'health-monitor' })}
+              className="flex flex-col items-center gap-1 px-3 relative"
+            >
+              <Heart className={`w-5 h-5 ${isVibrating ? 'text-red-600 animate-pulse' : 'text-gray-600'}`} />
+              <span className={`text-xs ${isVibrating ? 'text-red-600' : 'text-gray-600'}`}>Health</span>
+              {isVibrating && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+              )}
+            </button>
+            
+            <button 
+              onClick={() => onNavigate({ name: 'movement-heatmap-overview' })}
+              className="flex flex-col items-center gap-1 px-3"
+            >
+              <MapPin className="w-5 h-5 text-gray-600" />
+              <span className="text-xs text-gray-600">Map</span>
+            </button>
+            
+            <button 
+              onClick={() => onNavigate({ name: 'add-elevator' })}
+              className="flex flex-col items-center gap-1 px-3"
+            >
+              <div className="w-12 h-12 rounded-full bg-[#005EB8] flex items-center justify-center -mt-6 border-4 border-white">
+                <Plus className="w-6 h-6 text-white" />
+              </div>
+            </button>
+            
+            <button 
+              onClick={() => onNavigate({ name: 'all-issues-overview' })}
+              className="flex flex-col items-center gap-1 px-3"
+            >
+              <AlertCircle className="w-5 h-5 text-gray-600" />
+              <span className="text-xs text-gray-600">Issues</span>
+            </button>
+            
+            <button 
+              onClick={() => onNavigate({ name: 'saved-reports' })}
+              className="flex flex-col items-center gap-1 px-3"
+            >
+              <FileText className="w-5 h-5 text-gray-600" />
+              <span className="text-xs text-gray-600">Reports</span>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Maintainer - Simplified navigation */
+        <div className="bg-white border-t border-gray-300 px-4 py-3">
+          <div className="flex items-center justify-around">
+            <button 
+              onClick={() => onNavigate({ name: 'health-monitor' })}
+              className="flex flex-col items-center gap-1 px-3 relative"
+            >
+              <Heart className={`w-5 h-5 ${isVibrating ? 'text-red-600 animate-pulse' : 'text-gray-600'}`} />
+              <span className={`text-xs ${isVibrating ? 'text-red-600' : 'text-gray-600'}`}>Health</span>
+              {isVibrating && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+              )}
+            </button>
+            
+            <div className="text-center px-4">
+              <div className="text-sm text-gray-900 font-medium">Select Elevator</div>
+              <div className="text-xs text-gray-500">to Start Maintenance</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

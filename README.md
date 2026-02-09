@@ -1,7 +1,7 @@
 
-  # App Builder
+  # First Figma KONE APP
 
-  This is a code bundle for App Builder. The original project is available at https://www.figma.com/design/e53uF8exIedtDN0qIejkH5/App-Builder.
+  This is a code bundle for First Figma KONE APP. The original project is available at https://www.figma.com/design/e53uF8exIedtDN0qIejkH5/First-Figma-KONE-APP.
 
   ## Running the code
 

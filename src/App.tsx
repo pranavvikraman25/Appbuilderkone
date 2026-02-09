@@ -14,6 +14,8 @@ import { AddElevatorScreen } from "./components/AddElevatorScreen";
 import { KMPWebViewScreen } from "./components/KMPWebViewScreen";
 import { HealthMonitorScreen } from "./components/HealthMonitorScreen";
 import { MaintainerProfileScreen } from "./components/MaintainerProfileScreen";
+import * as api from "./utils/api";
+import { setAccessToken } from "./utils/api";
 
 export type Screen =
   | { name: "splash" }
@@ -48,7 +50,10 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState<"admin" | "maintainer">("maintainer");
+  const [accessToken, setAccessTokenState] = useState("");
   const [isVibrating, setIsVibrating] = useState(false);
+  const [activeSession, setActiveSession] = useState<any>(null);
   const [elevators, setElevators] = useState([
     {
       id: "ELV-001",
@@ -81,6 +86,49 @@ export default function App() {
       status: "inactive",
     },
   ]);
+
+  // Load elevators from backend when logged in
+  useEffect(() => {
+    if (isLoggedIn && accessToken) {
+      loadElevators();
+      checkActiveSession();
+    }
+  }, [isLoggedIn, accessToken]);
+
+  const loadElevators = async () => {
+    try {
+      const response = await api.getElevators();
+      if (response.success && response.elevators.length > 0) {
+        setElevators(response.elevators);
+      } else {
+        // Seed default elevators if none exist (only for admins)
+        if (userRole === 'admin') {
+          console.log('Seeding default elevators...');
+          for (const elevator of elevators) {
+            try {
+              await api.addElevator(elevator);
+            } catch (error) {
+              console.error('Failed to seed elevator:', error);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load elevators:", error);
+      // Keep default elevators if backend fails
+    }
+  };
+
+  const checkActiveSession = async () => {
+    try {
+      const response = await api.getActiveSession();
+      if (response.activeSession) {
+        setActiveSession(response.activeSession);
+      }
+    } catch (error) {
+      console.error("Failed to check active session:", error);
+    }
+  };
 
   // Health monitor - vibration every 30 minutes
   useEffect(() => {
@@ -143,10 +191,13 @@ export default function App() {
     }
   });
 
-  const handleLogin = (email: string, name?: string) => {
+  const handleLogin = (email: string, name: string, role: 'admin' | 'maintainer', token: string) => {
     setIsLoggedIn(true);
     setUserEmail(email);
-    setUserName(name || email.split('@')[0]);
+    setUserName(name);
+    setUserRole(role);
+    setAccessTokenState(token);
+    setAccessToken(token); // Set in API utility
     setNavigationHistory([]);
     setCurrentScreen({ name: "dashboard" });
   };
@@ -155,12 +206,26 @@ export default function App() {
     setIsLoggedIn(false);
     setUserEmail("");
     setUserName("");
+    setUserRole("maintainer");
+    setAccessTokenState("");
+    setAccessToken(null); // Clear from API utility
+    setActiveSession(null);
     setNavigationHistory([]);
     setCurrentScreen({ name: "login" });
   };
 
-  const handleAddElevator = (elevator: any) => {
-    setElevators([...elevators, elevator]);
+  const handleAddElevator = async (elevator: any) => {
+    try {
+      // Add to backend
+      const response = await api.addElevator(elevator);
+      if (response.success) {
+        setElevators([...elevators, elevator]);
+      }
+    } catch (error) {
+      console.error("Failed to add elevator:", error);
+      // Still add locally even if backend fails
+      setElevators([...elevators, elevator]);
+    }
     setCurrentScreen({ name: "dashboard" });
   };
 
@@ -190,17 +255,21 @@ export default function App() {
             isLoggedIn={isLoggedIn}
             userEmail={userEmail}
             userName={userName}
+            userRole={userRole}
             onLogout={handleLogout}
             elevators={elevators}
             isVibrating={isVibrating}
+            activeSession={activeSession}
           />
         )}
 
         {currentScreen.name === "elevator-detail" && (
           <ElevatorDetailScreen
             elevatorId={currentScreen.elevatorId}
+            userRole={userRole}
             onNavigate={handleNavigate}
             onGoBack={handleGoBack}
+            onSessionStart={setActiveSession}
           />
         )}
 
@@ -208,12 +277,22 @@ export default function App() {
           <FloorMaintenanceScreen
             elevatorId={currentScreen.elevatorId}
             floor={currentScreen.floor}
+            userRole={userRole}
+            activeSession={activeSession}
             onNavigate={handleNavigate}
             onGoBack={handleGoBack}
+            onSessionEnd={() => {
+              setActiveSession(null);
+              // Maintainers go back to dashboard after ending session
+              if (userRole === "maintainer") {
+                setNavigationHistory([]);
+                setCurrentScreen({ name: "dashboard" });
+              }
+            }}
           />
         )}
 
-        {currentScreen.name === "movement-heatmap" && (
+        {currentScreen.name === "movement-heatmap" && userRole === "admin" && (
           <MovementHeatMapScreen
             elevatorId={currentScreen.elevatorId}
             onNavigate={handleNavigate}
@@ -229,7 +308,7 @@ export default function App() {
           />
         )}
 
-        {currentScreen.name === "movement-heatmap-overview" && (
+        {currentScreen.name === "movement-heatmap-overview" && userRole === "admin" && (
           <MovementHeatMapOverview
             onNavigate={handleNavigate}
             onGoBack={handleGoBack}
@@ -250,7 +329,7 @@ export default function App() {
           />
         )}
 
-        {currentScreen.name === "floor-specific-heatmap" && (
+        {currentScreen.name === "floor-specific-heatmap" && userRole === "admin" && (
           <FloorSpecificHeatMap
             elevatorId={currentScreen.elevatorId}
             floor={currentScreen.floor}
@@ -293,6 +372,7 @@ export default function App() {
             onNavigate={handleNavigate}
             userEmail={userEmail}
             userName={userName}
+            userRole={userRole}
           />
         )}
       </div>
